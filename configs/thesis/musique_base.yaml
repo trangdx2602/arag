@@ -1,0 +1,25 @@
+# A-RAG Baseline — MuSiQue
+# API credentials via env vars: ARAG_API_KEY, ARAG_BASE_URL, ARAG_MODEL
+
+llm:
+  temperature: 0.0
+  max_tokens: 16384
+
+embedding:
+  model: "Qwen/Qwen3-Embedding-0.6B"
+  device: "cpu"
+  batch_size: 16
+
+agent:
+  variant: "arag_baseline"
+  max_loops: 15
+  max_token_budget: 128000
+  verbose: false
+
+data:
+  chunks_file: "data/musique/chunks.json"
+  questions_file: "data/musique/questions.json"
+  index_dir: "data/musique/index"
+
+output:
+  results_dir: "results/thesis/"

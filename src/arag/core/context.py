@@ -1,7 +1,17 @@
 """Agent execution context for ARAG."""
 
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 from dataclasses import dataclass, field
+
+# Lazy import to avoid circular deps and keep baseline untouched
+_EntityState = None
+
+def _get_entity_state_class():
+    global _EntityState
+    if _EntityState is None:
+        from arag.core.entity_state import EntityState
+        _EntityState = EntityState
+    return _EntityState
 
 
 @dataclass
@@ -15,14 +25,20 @@ class RetrievalLog:
 class AgentContext:
     """Context manager for agent execution state."""
     
-    def __init__(self):
+    def __init__(self, enable_entity_tracking: bool = False):
         # Token statistics
         self.total_retrieved_tokens: int = 0
         self.retrieval_logs: List[RetrievalLog] = []
-        
+
         # State management
         self.read_chunk_ids: Set[str] = set()
         self.search_history: List[Dict[str, Any]] = []
+
+        # Thesis extensions (only active when enable_entity_tracking=True)
+        self._enable_entity_tracking = enable_entity_tracking
+        self.entity_state = _get_entity_state_class()() if enable_entity_tracking else None
+        self.verification_result: Optional[Dict[str, Any]] = None
+        self.verification_passed: bool = False
     
     def add_retrieval_log(
         self,
@@ -66,10 +82,15 @@ class AgentContext:
         self.read_chunk_ids = set()
         self.search_history = []
         self.total_retrieved_tokens = 0
+        # Reset thesis extensions if active
+        if self._enable_entity_tracking and self.entity_state is not None:
+            self.entity_state = _get_entity_state_class()()
+        self.verification_result = None
+        self.verification_passed = False
     
     def get_summary(self) -> Dict[str, Any]:
         """Get context summary."""
-        return {
+        summary = {
             "total_retrieved_tokens": self.total_retrieved_tokens,
             "retrieval_logs": [
                 {
@@ -82,6 +103,14 @@ class AgentContext:
             "chunks_read_count": len(self.read_chunk_ids),
             "chunks_read_ids": list(self.read_chunk_ids)
         }
+        # Thesis extensions: only added if entity tracking is enabled
+        if self._enable_entity_tracking and self.entity_state is not None:
+            summary["entity_count"] = len(self.entity_state)
+            summary["entity_names"] = [n.name for n in list(self.entity_state.entities.values())[:50]]
+            summary["entity_state"] = self.entity_state.to_dict()
+        if self.verification_result is not None:
+            summary["verification"] = self.verification_result
+        return summary
     
     def to_dict(self) -> Dict[str, Any]:
         """Export context as dictionary."""

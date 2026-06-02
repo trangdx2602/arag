@@ -1,0 +1,24 @@
+# A-RAG + Entity Tracker — HotpotQA
+
+llm:
+  temperature: 0.0
+  max_tokens: 16384
+
+embedding:
+  model: "Qwen/Qwen3-Embedding-0.6B"
+  device: "cpu"
+  batch_size: 16
+
+agent:
+  variant: "arag_entity_tracker"
+  max_loops: 15
+  max_token_budget: 128000
+  verbose: false
+
+data:
+  chunks_file: "data/hotpotqa/chunks.json"
+  questions_file: "data/hotpotqa/questions.json"
+  index_dir: "data/hotpotqa/index"
+
+output:
+  results_dir: "results/thesis/"
