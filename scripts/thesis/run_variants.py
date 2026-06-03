@@ -29,8 +29,10 @@ from typing import Any, Dict, List, Optional
 
 from tqdm import tqdm
 
-# Ensure project root is on path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+# Always run from repo root so relative paths in YAML configs resolve correctly
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+os.chdir(_REPO_ROOT)
+sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 from arag import LLMClient, ToolRegistry, Config, BaseAgent
 from arag.agent.entity_agent import EntityAwareAgent
