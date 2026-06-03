@@ -57,6 +57,7 @@ poetry.lock
 data/
 data_*/
 results/
+results_thesis/
 outputs/
 logs/
 *.pkl
