@@ -129,6 +129,7 @@ class LLMClient:
         tools: List[Dict[str, Any]] = None,
         temperature: float = None,
         max_tokens: int = None,
+        tool_choice: str = "auto",
     ) -> Dict[str, Any]:
         url = f"{self.base_url}/chat/completions"
         headers = {
@@ -143,7 +144,7 @@ class LLMClient:
         }
         if tools:
             payload["tools"] = tools
-            payload["tool_choice"] = "auto"
+            payload["tool_choice"] = tool_choice
         if self.reasoning_effort:
             payload["reasoning_effort"] = self.reasoning_effort
         

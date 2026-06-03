@@ -75,24 +75,25 @@ class BaseAgent:
         total_cost = 0.0
         loop_count = 0
         tool_schemas = self.tools.get_all_schemas()
-        
+        any_tool_called = False
+
         if self.verbose:
             print(f"\n{'='*60}")
             print(f"Question: {query}")
             print(f"{'='*60}\n")
-        
+
         for loop_idx in range(self.max_loops):
             loop_count = loop_idx + 1
-            
+
             current_tokens = self._calculate_message_tokens(messages)
             if current_tokens > self.max_token_budget:
                 if self.verbose:
                     print(f"Token budget exceeded ({current_tokens} > {self.max_token_budget}), forcing answer...")
-                
+
                 final_answer, total_cost = self._force_final_answer(
                     messages, context, total_cost, "Token budget exceeded"
                 )
-                
+
                 return {
                     "answer": final_answer,
                     "trajectory": trajectory,
@@ -101,12 +102,15 @@ class BaseAgent:
                     "token_budget_exceeded": True,
                     **context.get_summary()
                 }
-            
+
             if self.verbose:
                 print(f"Loop {loop_count}/{self.max_loops} (Tokens: {current_tokens}/{self.max_token_budget})")
-            
+
+            # Force tool use until at least one retrieval tool has been called
+            tc_mode = "auto" if any_tool_called else "required"
+
             try:
-                response = self.llm.chat(messages=messages, tools=tool_schemas)
+                response = self.llm.chat(messages=messages, tools=tool_schemas, tool_choice=tc_mode)
             except Exception as e:
                 if self.verbose:
                     print(f"LLM error: {e}")
@@ -145,6 +149,7 @@ class BaseAgent:
                 
                 try:
                     tool_result, tool_log = self.tools.execute(func_name, context, **func_args)
+                    any_tool_called = True
                 except Exception as e:
                     tool_result = f"Error executing tool: {str(e)}"
                     tool_log = {"retrieved_tokens": 0, "error": str(e)}
