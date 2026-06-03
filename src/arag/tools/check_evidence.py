@@ -69,8 +69,10 @@ class CheckEvidenceTool(BaseTool):
         if reasoning_summary:
             trajectory_summary.append({"tool_name": "reasoning", "arguments": {"text": reasoning_summary}})
 
+        query = getattr(context, "query", "") or self._query
+
         result, _ = self._checker.check(
-            query=self._query,
+            query=query,
             proposed_answer=proposed_answer,
             context=context,
             trajectory=trajectory_summary,

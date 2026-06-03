@@ -25,10 +25,11 @@ class RetrievalLog:
 class AgentContext:
     """Context manager for agent execution state."""
     
-    def __init__(self, enable_entity_tracking: bool = False):
+    def __init__(self, enable_entity_tracking: bool = False, query: str = ""):
         # Token statistics
         self.total_retrieved_tokens: int = 0
         self.retrieval_logs: List[RetrievalLog] = []
+        self.query: str = query  # current question, thread-safe per context instance
 
         # State management
         self.read_chunk_ids: Set[str] = set()

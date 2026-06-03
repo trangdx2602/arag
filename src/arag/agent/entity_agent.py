@@ -51,7 +51,10 @@ class EntityAwareAgent(BaseAgent):
         verbose: bool = False,
     ):
         if system_prompt is None:
-            system_prompt = _load_prompt("entity_aware.txt")
+            if use_entity_tracking:
+                system_prompt = _load_prompt("entity_aware.txt")
+            else:
+                system_prompt = _load_prompt("evidence_aware.txt")
         super().__init__(
             llm_client=llm_client,
             tools=tools,
@@ -145,7 +148,7 @@ class EntityAwareAgent(BaseAgent):
 
     def run(self, query: str) -> Dict[str, Any]:
         """ReAct loop with optional entity tracking and evidence verification hooks."""
-        context = AgentContext(enable_entity_tracking=self.use_entity_tracking)
+        context = AgentContext(enable_entity_tracking=self.use_entity_tracking, query=query)
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": query},
@@ -247,7 +250,8 @@ class EntityAwareAgent(BaseAgent):
 
                 try:
                     tool_result, tool_log = self.tools.execute(func_name, context, **func_args)
-                    any_tool_called = True
+                    if func_name in ("keyword_search", "semantic_search", "read_chunk"):
+                        any_tool_called = True
                 except Exception as e:
                     tool_result = f"Error executing tool: {str(e)}"
                     tool_log = {"retrieved_tokens": 0, "error": str(e)}

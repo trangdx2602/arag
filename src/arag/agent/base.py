@@ -65,7 +65,7 @@ class BaseAgent:
         return final_answer, total_cost
     
     def run(self, query: str) -> Dict[str, Any]:
-        context = AgentContext()
+        context = AgentContext(query=query)
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": query},
@@ -149,7 +149,8 @@ class BaseAgent:
                 
                 try:
                     tool_result, tool_log = self.tools.execute(func_name, context, **func_args)
-                    any_tool_called = True
+                    if func_name in ("keyword_search", "semantic_search", "read_chunk"):
+                        any_tool_called = True
                 except Exception as e:
                     tool_result = f"Error executing tool: {str(e)}"
                     tool_log = {"retrieved_tokens": 0, "error": str(e)}

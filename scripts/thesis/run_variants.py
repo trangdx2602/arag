@@ -154,11 +154,6 @@ def process_one(item: Dict[str, Any], agent) -> Dict[str, Any]:
     question = item.get("question", "")
     gold_answer = item.get("answer", item.get("gold_answer", ""))
 
-    # Pass query to check_evidence tool if present
-    for tool in getattr(getattr(agent, "tools", None), "_tools", {}).values():
-        if hasattr(tool, "_query"):
-            tool._query = question
-
     try:
         result = agent.run(question)
         return {
