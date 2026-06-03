@@ -61,13 +61,16 @@ def _load_prompt(name: str) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else "You are a helpful assistant."
 
 
-def build_tools(config: Config, use_entity_lookup: bool = False,
+def build_tools(config: Config, repo_root: Path,
+                use_entity_lookup: bool = False,
                 use_check_evidence: bool = False,
                 checker: Optional[EvidenceSufficiencyChecker] = None) -> ToolRegistry:
     """Build shared ToolRegistry from config."""
     data_config = config.get("data", {})
-    chunks_file = data_config.get("chunks_file", "data/chunks.json")
-    index_dir = data_config.get("index_dir", "data/index")
+    # Resolve relative paths from repo root (derived from --config absolute path)
+    # so this works regardless of the process CWD
+    chunks_file = str((repo_root / data_config.get("chunks_file", "data/chunks.json")).resolve())
+    index_dir = str((repo_root / data_config.get("index_dir", "data/index")).resolve())
 
     tools = ToolRegistry()
     tools.register(KeywordSearchTool(chunks_file=chunks_file))
@@ -197,8 +200,13 @@ def main():
     args = parser.parse_args()
 
     config = Config.from_yaml(args.config)
+    # Derive repo root from --config path (always absolute in notebook calls)
+    # configs/thesis/musique_base.yaml -> configs/thesis -> configs -> repo_root
+    repo_root = Path(args.config).resolve().parent.parent.parent
+
     data_cfg = config.get("data", {})
-    questions_file = args.questions or data_cfg.get("questions_file", "data/questions.json")
+    raw_questions = data_cfg.get("questions_file", "data/questions.json")
+    questions_file = args.questions or str((repo_root / raw_questions).resolve())
 
     with open(questions_file, "r", encoding="utf-8") as f:
         questions = json.load(f)
@@ -243,8 +251,9 @@ def main():
     use_entity_lookup = args.variant in ("arag_entity_tracker", "arag_entity_evidence_full")
     use_check_evidence = args.variant in ("arag_evidence_checker", "arag_entity_evidence_full")
 
-    shared_tools = build_tools(config, use_entity_lookup=use_entity_lookup,
-                                use_check_evidence=use_check_evidence, checker=checker)
+    shared_tools = build_tools(config, repo_root=repo_root,
+                               use_entity_lookup=use_entity_lookup,
+                               use_check_evidence=use_check_evidence, checker=checker)
 
     write_lock = Lock()
 
