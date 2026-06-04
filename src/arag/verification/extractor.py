@@ -36,6 +36,7 @@ class EntityExtractor:
 
     def __init__(self, llm_client: LLMClient):
         self.llm = llm_client
+        self._cache: Dict[str, Dict[str, Any]] = {}
 
     def extract(self, chunk_text: str, chunk_id: str) -> Dict[str, Any]:
         """Extract entities/relations from a single chunk.
@@ -45,6 +46,9 @@ class EntityExtractor:
         """
         if not chunk_text or not chunk_text.strip():
             return {"entities": [], "relations": []}
+
+        if chunk_id in self._cache:
+            return self._cache[chunk_id]
 
         # Truncate to avoid very long chunks blowing up extraction cost
         text = chunk_text[:3000]
@@ -72,6 +76,7 @@ class EntityExtractor:
             for rel in result.get("relations", []):
                 if not rel.get("chunk_id"):
                     rel["chunk_id"] = chunk_id
+            self._cache[chunk_id] = result
             return result
         except Exception:
             return {"entities": [], "relations": []}

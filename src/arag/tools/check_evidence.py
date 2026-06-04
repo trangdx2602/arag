@@ -81,6 +81,7 @@ class CheckEvidenceTool(BaseTool):
         context.verification_result = result.to_dict()
 
         if result.is_sufficient:
+            context.verification_passed = True  # prevent duplicate check in _apply_verification_hook
             output = (
                 f"[Evidence Check: SUFFICIENT] Coverage: {result.coverage_score:.0%}\n"
                 "Your evidence is sufficient. You may now provide your final answer."
