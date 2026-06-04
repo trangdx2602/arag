@@ -158,7 +158,6 @@ class EntityAwareAgent(BaseAgent):
         total_cost = 0.0
         loop_count = 0
         tool_schemas = self.tools.get_all_schemas()
-        any_tool_called = False
 
         if self.verbose:
             print(f"\n{'='*60}")
@@ -193,10 +192,8 @@ class EntityAwareAgent(BaseAgent):
             if self.verbose:
                 print(f"Loop {loop_count}/{self.max_loops} (Tokens: {current_tokens})")
 
-            tc_mode = "auto" if any_tool_called else "required"
-
             try:
-                response = self.llm.chat(messages=messages, tools=tool_schemas, tool_choice=tc_mode)
+                response = self.llm.chat(messages=messages, tools=tool_schemas, tool_choice="auto")
             except Exception as e:
                 if self.verbose:
                     print(f"LLM error: {e}")
@@ -250,8 +247,6 @@ class EntityAwareAgent(BaseAgent):
 
                 try:
                     tool_result, tool_log = self.tools.execute(func_name, context, **func_args)
-                    if func_name in ("keyword_search", "semantic_search", "read_chunk"):
-                        any_tool_called = True
                 except Exception as e:
                     tool_result = f"Error executing tool: {str(e)}"
                     tool_log = {"retrieved_tokens": 0, "error": str(e)}
