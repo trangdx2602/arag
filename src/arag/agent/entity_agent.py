@@ -158,6 +158,7 @@ class EntityAwareAgent(BaseAgent):
         total_cost = 0.0
         loop_count = 0
         tool_schemas = self.tools.get_all_schemas()
+        retrieval_done = False  # True once any search/read tool has been called
 
         if self.verbose:
             print(f"\n{'='*60}")
@@ -208,6 +209,12 @@ class EntityAwareAgent(BaseAgent):
 
             tool_calls = message.get("tool_calls")
             if not tool_calls:
+                if not retrieval_done:
+                    # Model answered without searching — force retrieval
+                    messages.append({"role": "user", "content":
+                        "You did not search the documents. You MUST call keyword_search or "
+                        "semantic_search before answering. Search now."})
+                    continue
                 # Agent wants to answer — apply verification hook
                 proposed_answer = message.get("content", "")
                 accept, feedback, total_cost = self._apply_verification_hook(
@@ -247,6 +254,8 @@ class EntityAwareAgent(BaseAgent):
 
                 try:
                     tool_result, tool_log = self.tools.execute(func_name, context, **func_args)
+                    if func_name in ("keyword_search", "semantic_search", "read_chunk"):
+                        retrieval_done = True
                 except Exception as e:
                     tool_result = f"Error executing tool: {str(e)}"
                     tool_log = {"retrieved_tokens": 0, "error": str(e)}
